@@ -1,0 +1,158 @@
+openapi: 3.1.0
+info:
+  title: GitHub Bot API
+  description: API for accessing GitHub repositories using a fine-grained PAT.
+  version: 1.0.0
+servers:
+  - url: https://api.github.com
+
+paths:
+  /user/repos:
+    get:
+      operationId: listAllRepos
+      summary: Get all repositories accessible by the agent
+      description: Retrieves a list of all repositories that the bot has access to.
+      security:
+        - githubAuth: []
+      responses:
+        "200":
+          description: A list of all repositories the agent can access
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Repository"
+        "401":
+          description: Unauthorized - Invalid token or missing permissions
+
+  /repos/{owner}/{repo}:
+    get:
+      operationId: checkRepoAccess
+      summary: Check if a specific repository is accessible
+      description: Verifies whether the agent has access to a given repository.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - githubAuth: []
+      responses:
+        "200":
+          description: Repository is accessible
+        "403":
+          description: Access denied. Add 'isdit@mmdc.mcl.edu.ph' as a collaborator.
+        "404":
+          description: Repository not found.
+
+  /repos/{owner}/{repo}/contents:
+    get:
+      operationId: listAllFiles
+      summary: List all files in a repository (including subdirectories)
+      description: Retrieves a list of all files in a repository, ensuring subdirectories are included.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - githubAuth: []
+      responses:
+        "200":
+          description: Successfully retrieved file paths
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    path:
+                      type: string
+                    type:
+                      type: string
+                      example: "file" or "dir"
+        "401":
+          description: Unauthorized - Invalid token
+        "404":
+          description: Repository not found
+
+  /repos/{owner}/{repo}/contents/{path}:
+    get:
+      operationId: getFileContent
+      summary: Retrieve the content of a specific file
+      description: Retrieves the content of a file, ensuring subdirectory paths are correctly handled.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - githubAuth: []
+      responses:
+        "200":
+          description: Successfully retrieved file content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileContent"
+        "401":
+          description: Unauthorized - Invalid or missing authentication token
+        "404":
+          description: File not found
+
+components:
+  schemas:
+    Repository:
+      type: object
+      properties:
+        name:
+          type: string
+        full_name:
+          type: string
+        private:
+          type: boolean
+
+    FileContent:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        content:
+          type: string
+
+  securitySchemes:
+    githubAuth:
+      type: http
+      scheme: bearer
+
+security:
+  - githubAuth: []
